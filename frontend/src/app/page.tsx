@@ -21,10 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Users, Target, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 
 // --- URL da API Backend ---
-// CORREÇÃO: Acessar process.env diretamente no código do lado do cliente causa um erro "process is not defined"
-// em alguns ambientes. A forma correta em um projeto Next.js é usar `process.env.NEXT_PUBLIC_API_URL`,
-// mas para garantir a compatibilidade, vamos usar um valor fixo aqui.
-const API_URL = 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // --- Tipos ---
 type Skill = { id: string; name: string };
@@ -36,7 +33,8 @@ type FormState = {
   skills: Skill[];
   profile_summary: string;
   actions: {
-    setData: (field: keyof Omit<FormState, 'actions'>, value: any) => void;
+    // CORREÇÃO: Removido o tipo 'any'
+    setData: (field: keyof Omit<FormState, 'actions' | 'skills'>, value: string) => void;
     addSkill: (skill: Skill) => void;
     removeSkill: (skillId: string) => void;
     reset: () => void;
@@ -91,7 +89,14 @@ function SkillsCombobox({ availableSkills, isLoading }: { availableSkills: Skill
             {availableSkills?.map((skill) => {
               const isSelected = selectedSkills.some(s => s.id === skill.id);
               return (
-                <CommandItem key={skill.id} onSelect={() => { isSelected ? removeSkill(skill.id) : addSkill(skill); }}>
+                <CommandItem key={skill.id} onSelect={() => {
+                  // CORREÇÃO: Ternário reescrito como if/else para seguir a regra do linter
+                  if (isSelected) {
+                    removeSkill(skill.id);
+                  } else {
+                    addSkill(skill);
+                  }
+                }}>
                   <Check className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100" : "opacity-0"}`} />
                   {skill.name}
                 </CommandItem>
@@ -126,7 +131,8 @@ function CandidateForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.skills.length === 0) { toast.warning("Selecione pelo menos uma skill."); return; }
-    const { actions, skills, ...payload } = formData;
+    // CORREÇÃO: Removida a variável 'actions' não utilizada
+    const { skills, ...payload } = formData;
     const skillIds = skills.map(s => s.id);
     mutation.mutate({ ...payload, skillIds });
   };

@@ -5,6 +5,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios from 'axios';
+import Link from 'next/link'; // CORREÇÃO: Usar Link do Next.js para navegação
 
 // --- Importação de Componentes UI (Shadcn/UI) ---
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -194,33 +195,13 @@ function CandidateTable() {
   );
 }
 
-function Header() {
-    return (
-        <header className="bg-white shadow-sm mb-8 sticky top-0 z-10">
-            <nav className="container mx-auto px-4 py-3 flex justify-between items-center">
-                <h1 className="text-xl font-bold text-blue-600">Mini FitScore</h1>
-                <div className="space-x-4">
-                    <a href="/" className="text-gray-600 hover:text-blue-600">Formulário</a>
-                    <a href="/dashboard" className="text-blue-600 font-semibold">Dashboard</a>
-                </div>
-            </nav>
-        </header>
-    )
-}
-
 // --- Componente Principal da Página ---
-const queryClient = new QueryClient();
-
+// Removido o QueryClientProvider daqui, pois ele já está no layout.tsx
 export default function DashboardPage() {
   return (
-    <QueryClientProvider client={queryClient}>
-        <div className="min-h-screen bg-gray-50 font-sans">
-            <Header />
-            <main className="container mx-auto p-4">
-                <DashboardHeader />
-                <CandidateTable />
-            </main>
-        </div>
-    </QueryClientProvider>
+    <main className="container mx-auto p-4">
+        <DashboardHeader />
+        <CandidateTable />
+    </main>
   );
 }
