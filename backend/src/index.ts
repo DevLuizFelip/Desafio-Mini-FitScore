@@ -1,4 +1,4 @@
-// Salve este código como `backend/src/index.ts`
+
 
 import express, { Request, Response } from 'express';
 import cors from 'cors';
@@ -19,9 +19,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // --- Middlewares ---
-// CORREÇÃO: Configuração de CORS mais explícita para garantir a compatibilidade com o deploy.
 app.use(cors({
-  origin: '*', // Permite pedidos de qualquer origem. Para mais segurança, pode restringir ao URL da Vercel.
+  origin: '*',
   methods: ['GET', 'POST'],
 }));
 app.use(express.json());
@@ -111,23 +110,19 @@ app.get('/api/candidates', async (req: Request, res: Response) => {
     }
 });
 
+// **ROTA DE MÉTRICAS CORRIGIDA E OTIMIZADA**
 app.get('/api/metrics', async (req: Request, res: Response) => {
     try {
+        // Busca todos os dados de uma vez para evitar múltiplas chamadas
         const { data, error } = await supabase
-            .from('candidates')
-            .select('fit_score', { count: 'exact', head: true }); // Otimizado para apenas contar
-
-        const totalCandidates = error ? 0 : data?.length ?? 0;
-        
-        // Para calcular a média, precisamos dos dados
-        const { data: scoresData, error: scoresError } = await supabase
             .from('candidates')
             .select('fit_score');
 
-        if (scoresError) throw scoresError;
+        if (error) throw error;
 
+        const totalCandidates = data.length;
         const averageFitScore = totalCandidates > 0 
-            ? scoresData.reduce((acc, curr) => acc + curr.fit_score, 0) / totalCandidates 
+            ? data.reduce((acc, curr) => acc + (curr.fit_score || 0), 0) / totalCandidates 
             : 0;
 
         res.status(200).json({ totalCandidates, averageFitScore });
