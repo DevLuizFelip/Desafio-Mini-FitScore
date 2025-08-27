@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react'; // CORREÇÃO: Removido 'useEffect' não utilizado
 import { create } from 'zustand';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
@@ -13,8 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider"; // Importar o Slider
-import { Users, Target, Check, ChevronsUpDown, Loader2, BarChart, Zap, Heart } from 'lucide-react';
+import { Slider } from "@/components/ui/slider";
+// CORREÇÃO: Removido 'Users' não utilizado
+import { Target, Check, ChevronsUpDown, Loader2, BarChart, Zap, Heart } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -24,9 +25,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // --- Tipos e Store (Zustand) ---
 type Skill = { id: string; name: string };
+// CORREÇÃO: Criado um tipo específico para o payload do candidato
+type CandidatePayload = {
+  name: string;
+  email: string;
+  phone: string;
+  seniority: string;
+  skills: string[];
+  performance: number;
+  energy: number;
+  culture: number;
+};
 type FormState = {
   name: string; email: string; phone: string; seniority: string; skills: Skill[];
-  performance: number[]; energy: number[]; culture: number[]; // Campos para os sliders
+  performance: number[]; energy: number[]; culture: number[];
   actions: {
     setData: (field: keyof Omit<FormState, 'actions' | 'skills'>, value: string | number[]) => void;
     addSkill: (skill: Skill) => void;
@@ -48,7 +60,8 @@ const useFormStore = create<FormState>((set) => ({
 
 // --- Funções de API ---
 const fetchSkills = async (): Promise<Skill[]> => (await axios.get(`${API_URL}/skills`)).data;
-const createCandidate = async (candidateData: any) => (await axios.post(`${API_URL}/candidates`, candidateData)).data;
+// CORREÇÃO: Aplicado o tipo específico ao payload
+const createCandidate = async (candidateData: CandidatePayload) => (await axios.post(`${API_URL}/candidates`, candidateData)).data;
 
 // --- Componentes ---
 function SkillsCombobox({ availableSkills, isLoading }: { availableSkills: Skill[], isLoading: boolean }) {
@@ -80,7 +93,7 @@ function CandidateForm() {
     e.preventDefault();
     if (formData.skills.length === 0) { toast.warning("Selecione pelo menos uma skill."); return; }
     
-    const payload = {
+    const payload: CandidatePayload = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
