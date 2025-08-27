@@ -3,9 +3,9 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+// CORREÇÃO: Removidos imports não utilizados (QueryClient, QueryClientProvider, Link)
+import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import Link from 'next/link'; // CORREÇÃO: Usar Link do Next.js para navegação
 
 // --- Importação de Componentes UI (Shadcn/UI) ---
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -196,7 +196,6 @@ function CandidateTable() {
 }
 
 // --- Componente Principal da Página ---
-// Removido o QueryClientProvider daqui, pois ele já está no layout.tsx
 export default function DashboardPage() {
   return (
     <main className="container mx-auto p-4">
