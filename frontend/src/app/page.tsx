@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react'; // CORREÇÃO: Removido 'useEffect' não utilizado
+import { useState } from 'react'; 
 import { create } from 'zustand';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-// CORREÇÃO: Removido 'Users' não utilizado
+
 import { Target, Check, ChevronsUpDown, Loader2, BarChart, Zap, Heart } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
