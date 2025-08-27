@@ -101,7 +101,7 @@ Passos:
 
 Clone o repositório:
 
-git clone https://github.com/seu-usuario/Desafio-Mini-FitScore.git
+git clone https://github.com/DevLuizFelip/Desafio-Mini-FitScore.git
 cd Desafio-Mini-FitScore
 
 Configure as Variáveis de Ambiente:
