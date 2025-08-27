@@ -1,10 +1,4 @@
-// Este é o código completo para o seu `backend/src/index.ts`
-// PRÉ-REQUISITOS:
-// 1. Ter um projeto no Supabase com as tabelas do script SQL.
-// 2. Ter um arquivo `.env` na raiz do backend com:
-//    SUPABASE_URL=https://seu-projeto.supabase.co
-//    SUPABASE_ANON_KEY=sua-chave-anon
-//    PORT=3001
+// Salve este código como `backend/src/index.ts`
 
 import express, { Request, Response } from 'express';
 import cors from 'cors';
@@ -24,7 +18,12 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANO
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+// --- Middlewares ---
+// CORREÇÃO: Configuração de CORS mais explícita para garantir a compatibilidade com o deploy.
+app.use(cors({
+  origin: '*', // Permite pedidos de qualquer origem. Para mais segurança, pode restringir ao URL da Vercel.
+  methods: ['GET', 'POST'],
+}));
 app.use(express.json());
 
 // --- Lógica de Negócio (Services) ---
@@ -52,7 +51,6 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'API is running' });
 });
 
-// Rota para buscar todas as skills
 app.get('/api/skills', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase.from('skills').select('id, name');
@@ -63,7 +61,6 @@ app.get('/api/skills', async (req: Request, res: Response) => {
   }
 });
 
-// Rota para criar um novo candidato
 app.post('/api/candidates', async (req: Request, res: Response) => {
   const { name, email, phone, seniority, profile_summary, skillIds } = req.body;
 
@@ -100,12 +97,11 @@ app.post('/api/candidates', async (req: Request, res: Response) => {
   }
 });
 
-// Rota para buscar candidatos (com mais detalhes para o modal)
 app.get('/api/candidates', async (req: Request, res: Response) => {
     try {
         const { data, error } = await supabase
             .from('candidates')
-            .select(`*, skills ( name )`) // Pega todas as colunas de candidates e o nome das skills relacionadas
+            .select(`*, skills ( name )`)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -115,18 +111,23 @@ app.get('/api/candidates', async (req: Request, res: Response) => {
     }
 });
 
-// **NOVO ENDPOINT PARA MÉTRICAS**
 app.get('/api/metrics', async (req: Request, res: Response) => {
     try {
         const { data, error } = await supabase
             .from('candidates')
-            .select('fit_score', { count: 'exact' }); // Pega todos os scores e a contagem total
+            .select('fit_score', { count: 'exact', head: true }); // Otimizado para apenas contar
 
-        if (error) throw error;
+        const totalCandidates = error ? 0 : data?.length ?? 0;
+        
+        // Para calcular a média, precisamos dos dados
+        const { data: scoresData, error: scoresError } = await supabase
+            .from('candidates')
+            .select('fit_score');
 
-        const totalCandidates = data.length;
+        if (scoresError) throw scoresError;
+
         const averageFitScore = totalCandidates > 0 
-            ? data.reduce((acc, curr) => acc + curr.fit_score, 0) / totalCandidates 
+            ? scoresData.reduce((acc, curr) => acc + curr.fit_score, 0) / totalCandidates 
             : 0;
 
         res.status(200).json({ totalCandidates, averageFitScore });
