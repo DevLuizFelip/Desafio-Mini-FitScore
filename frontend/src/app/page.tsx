@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react'; // CORREÇÃO: Removido 'useEffect' não utilizado
@@ -115,7 +114,8 @@ function CandidateForm() {
             <div className="space-y-2"><Label htmlFor="name">Nome</Label><Input id="name" value={formData.name} onChange={e => setData('name', e.target.value)} required /></div>
             <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" value={formData.email} onChange={e => setData('email', e.target.value)} required /></div>
             <div className="space-y-2"><Label htmlFor="phone">Telefone</Label><Input id="phone" value={formData.phone} onChange={e => setData('phone', e.target.value)} /></div>
-            <div className="space-y-2"><Label htmlFor="seniority">Senioridade</Label><Select value={formData.seniority} onValueChange={value => setData('seniority', [value])} required><SelectTrigger id="seniority"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent><SelectItem value="Júnior">Júnior</SelectItem><SelectItem value="Pleno">Pleno</SelectItem><SelectItem value="Sênior">Sênior</SelectItem></SelectContent></Select></div>
+            {/* CORREÇÃO: Removido o array `[value]` ao chamar a função `setData` */}
+            <div className="space-y-2"><Label htmlFor="seniority">Senioridade</Label><Select value={formData.seniority} onValueChange={value => setData('seniority', value)} required><SelectTrigger id="seniority"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent><SelectItem value="Júnior">Júnior</SelectItem><SelectItem value="Pleno">Pleno</SelectItem><SelectItem value="Sênior">Sênior</SelectItem></SelectContent></Select></div>
           </div>
           <div className="space-y-2"><Label>Skills</Label><SkillsCombobox availableSkills={skills || []} isLoading={isLoadingSkills} /></div>
           
