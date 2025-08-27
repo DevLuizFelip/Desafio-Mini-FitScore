@@ -1,4 +1,3 @@
-// Salve este código como `frontend/src/app/dashboard/page.tsx`
 
 "use client";
 

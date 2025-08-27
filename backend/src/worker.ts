@@ -1,128 +1,98 @@
-// Salve este código como `backend/src/worker.ts`
-// Para rodar: `npm run worker` (conforme script no package.json)
 
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 dotenv.config();
 
-// --- Validação das variáveis de ambiente ---
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const geminiApiKey = process.env.GEMINI_API_KEY;
 
-if (!supabaseUrl || !supabaseKey || !geminiApiKey) {
-  console.error('Error: Supabase or Gemini API keys are not defined in .env file.');
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Error: Supabase keys are not defined in .env file.');
   process.exit(1);
 }
 
-// --- Inicialização dos Clientes ---
 const supabase = createClient(supabaseUrl, supabaseKey);
-const genAI = new GoogleGenerativeAI(geminiApiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-// --- Lógica Principal do Worker ---
-
-/**
- * Busca por um candidato com análise pendente no banco de dados.
- * @returns O primeiro candidato pendente encontrado ou null.
- */
-async function findPendingCandidate() {
-  const { data, error } = await supabase
+// --- LÓGICA 1: Notificação de Resultado (Disparada por evento) ---
+async function processCandidateNotifications() {
+  console.log('[Worker] Verificando candidatos para notificar...');
+  
+  const { data: candidate, error } = await supabase
     .from('candidates')
-    .select('*')
-    .eq('llm_analysis_status', 'pending')
+    .select('id, name, email, fit_score_classification')
+    .eq('notification_status', 'pending')
     .limit(1)
     .single();
 
-  if (error && error.code !== 'PGRST116') { // PGRST116 = "No rows found"
-    console.error('Error fetching pending candidate:', error);
-    return null;
-  }
-  return data;
-}
-
-/**
- * Gera uma análise do perfil do candidato usando a API do Gemini.
- * @param summary O resumo do perfil do candidato.
- * @returns A análise gerada pela IA.
- */
-async function generateAIAnalysis(summary: string): Promise<string> {
-  const prompt = `
-    Analise o seguinte resumo de perfil para um desenvolvedor de software.
-    Seu objetivo é fornecer uma análise concisa (máximo de 100 palavras) sobre os pontos fortes, 
-    possíveis áreas de especialização e o nível de experiência aparente.
-    Seja direto e profissional.
-
-    Resumo do Perfil: "${summary}"
-  `;
-
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
-  } catch (error) {
-    console.error('Error calling Gemini API:', error);
-    throw new Error('Failed to generate AI analysis.');
-  }
-}
-
-/**
- * Atualiza o status e a análise de um candidato no banco de dados.
- * @param candidateId O ID do candidato.
- * @param status O novo status.
- * @param analysis O texto da análise (opcional).
- */
-async function updateCandidateStatus(candidateId: string, status: 'processing' | 'completed' | 'failed', analysis: string | null = null) {
-  const { error } = await supabase
-    .from('candidates')
-    .update({ llm_analysis_status: status, llm_analysis: analysis })
-    .eq('id', candidateId);
-
-  if (error) {
-    console.error(`Error updating candidate ${candidateId} to ${status}:`, error);
-  }
-}
-
-/**
- * Função principal que processa a fila de candidatos.
- */
-async function processQueue() {
-  console.log('Worker checking for pending candidates...');
-  const candidate = await findPendingCandidate();
-
-  if (!candidate) {
-    // Fila vazia, não faz nada.
+  if (error && error.code !== 'PGRST116') {
+    console.error('[Worker] Erro ao buscar candidato pendente:', error);
     return;
   }
 
-  console.log(`Processing candidate: ${candidate.name} (ID: ${candidate.id})`);
+  if (!candidate) {
+    return; // Fila vazia
+  }
 
-  // 1. Marca o candidato como "processando" para evitar que outro worker o pegue.
-  await updateCandidateStatus(candidate.id, 'processing');
+  console.log(`[Worker] Processando notificação para: ${candidate.name}`);
+  
+  // Simula o envio de uma notificação (ex: email)
+  console.log(`--- SIMULANDO ENVIO DE EMAIL ---`);
+  console.log(`Para: ${candidate.email}`);
+  console.log(`Assunto: Resultado da sua Avaliação FitScore`);
+  console.log(`Olá ${candidate.name}, o resultado da sua avaliação foi: ${candidate.fit_score_classification}.`);
+  console.log(`---------------------------------`);
 
-  try {
-    // 2. Gera a análise com a IA.
-    const analysisResult = await generateAIAnalysis(candidate.profile_summary);
+  // Atualiza o status para 'sent'
+  const { error: updateError } = await supabase
+    .from('candidates')
+    .update({ notification_status: 'sent' })
+    .eq('id', candidate.id);
 
-    // 3. Salva o resultado e marca como "concluído".
-    await updateCandidateStatus(candidate.id, 'completed', analysisResult);
-    console.log(`Successfully analyzed candidate: ${candidate.name}`);
-
-  } catch (error) {
-    // 4. Em caso de erro, marca como "falhou".
-    console.error(`Failed to process candidate ${candidate.id}:`, error);
-    await updateCandidateStatus(candidate.id, 'failed');
+  if (updateError) {
+    console.error(`[Worker] Erro ao atualizar status do candidato ${candidate.id}:`, updateError);
+  } else {
+    console.log(`[Worker] Notificação para ${candidate.name} processada com sucesso.`);
   }
 }
 
-// --- Execução do Worker ---
-const POLLING_INTERVAL_MS = 15000; // Verifica a fila a cada 15 segundos.
+// --- LÓGICA 2: Relatório de Aprovados (Disparada por tempo) ---
+async function generateApprovedReport() {
+    console.log('[Reporter] Gerando relatório de aprovados...');
 
-console.log('🚀 AI Analysis Worker started.');
-console.log(`Polling database every ${POLLING_INTERVAL_MS / 1000} seconds.`);
+    const { data, error } = await supabase
+        .from('candidates')
+        .select('name, email, fit_score')
+        .gte('fit_score', 80); // gte = Greater Than or Equal (>=)
 
-// Executa imediatamente na primeira vez e depois no intervalo definido.
-processQueue();
-setInterval(processQueue, POLLING_INTERVAL_MS);
+    if (error) {
+        console.error('[Reporter] Erro ao consultar candidatos para o relatório:', error);
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        console.log('[Reporter] Nenhum candidato com Fit Altíssimo encontrado para o relatório.');
+        return;
+    }
+
+    // Simula o envio de um relatório para um gestor
+    console.log(`\n--- SIMULANDO RELATÓRIO PARA O GESTOR ---`);
+    console.log(`Data: ${new Date().toISOString()}`);
+    console.log(`Candidatos com Fit Altíssimo (Score >= 80):`);
+    data.forEach(candidate => {
+        console.log(`  - Nome: ${candidate.name}, Email: ${candidate.email}, Score: ${candidate.fit_score}`);
+    });
+    console.log(`-----------------------------------------\n`);
+}
+
+// --- Execução dos Workers ---
+const NOTIFICATION_INTERVAL_MS = 15000; // Lógica 1 roda a cada 15 segundos
+const REPORT_INTERVAL_MS = 1000 * 60 * 5; // Lógica 2 roda a cada 5 minutos (para teste)
+
+console.log('🚀 Workers de Lógica de Negócio iniciados.');
+
+// Inicia a Lógica 1
+setInterval(processCandidateNotifications, NOTIFICATION_INTERVAL_MS);
+
+// Inicia a Lógica 2
+setInterval(generateApprovedReport, REPORT_INTERVAL_MS);

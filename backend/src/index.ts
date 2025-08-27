@@ -1,5 +1,4 @@
 
-
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -19,29 +18,28 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // --- Middlewares ---
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST'],
-}));
+app.use(cors({ origin: '*', methods: ['GET', 'POST'] }));
 app.use(express.json());
 
 // --- Lógica de Negócio (Services) ---
 
-const calculateFitScore = (seniority: string, skills: string[]): { score: number; classification: string } => {
-  const SENIORITY_POINTS: { [key: string]: number } = { 'Júnior': 10, 'Pleno': 20, 'Sênior': 30 };
-  const SKILL_POINTS: { [key: string]: number } = { 'Next.js': 7, 'Supabase': 7, 'Docker': 7, 'TypeScript': 5, 'Node.js': 5 };
-  const DEFAULT_SKILL_POINT = 3;
+// **NOVA LÓGICA DE CÁLCULO DO FITSCORE**
+const calculateFitScore = (formData: { performance: number, energy: number, culture: number }): { score: number; classification: string } => {
+  // Simplesmente somamos os pontos dos 3 blocos (cada um de 0-100) e tiramos a média.
+  const score = Math.round((formData.performance + formData.energy + formData.culture) / 3);
 
-  let score = SENIORITY_POINTS[seniority] || 0;
-  score += skills.reduce((acc, skillName) => acc + (SKILL_POINTS[skillName] || DEFAULT_SKILL_POINT), 0);
-
-  const normalizedScore = Math.min(Math.round((score / 80) * 100), 100);
-
-  let classification = "Fora do perfil";
-  if (normalizedScore >= 75) classification = "Ideal";
-  else if (normalizedScore >= 50) classification = "Promissor";
+  let classification: string;
+  if (score >= 80) {
+    classification = "Fit Altíssimo";
+  } else if (score >= 60) {
+    classification = "Fit Aprovado";
+  } else if (score >= 40) {
+    classification = "Fit Questionável";
+  } else {
+    classification = "Fora do Perfil";
+  }
   
-  return { score: normalizedScore, classification };
+  return { score, classification };
 };
 
 // --- Rotas da API (Controllers) ---
@@ -61,22 +59,25 @@ app.get('/api/skills', async (req: Request, res: Response) => {
 });
 
 app.post('/api/candidates', async (req: Request, res: Response) => {
-  const { name, email, phone, seniority, profile_summary, skillIds } = req.body;
+  // Atualizado para receber os novos campos
+  const { name, email, phone, seniority, skills: skillIds, performance, energy, culture } = req.body;
 
-  if (!name || !email || !seniority || !profile_summary || !skillIds || skillIds.length === 0) {
+  if (!name || !email || !seniority || !skillIds || skillIds.length === 0 || performance === undefined || energy === undefined || culture === undefined) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
   try {
-    const { data: skillsData, error: skillsError } = await supabase.from('skills').select('name').in('id', skillIds);
-    if (skillsError) throw skillsError;
-    
-    const skillNames = skillsData.map(s => s.name);
-    const { score, classification } = calculateFitScore(seniority, skillNames);
+    const { score, classification } = calculateFitScore({ performance, energy, culture });
 
     const { data: candidateData, error: candidateError } = await supabase
       .from('candidates')
-      .insert({ name, email, phone, seniority, profile_summary, fit_score: score, fit_score_classification: classification, llm_analysis_status: 'pending' })
+      .insert({ 
+        name, email, phone, seniority, 
+        fit_score: score, 
+        fit_score_classification: classification,
+        // Adiciona o status inicial para a Lógica 1 de notificação
+        notification_status: 'pending' 
+      })
       .select().single();
 
     if (candidateError) throw candidateError;
@@ -110,14 +111,9 @@ app.get('/api/candidates', async (req: Request, res: Response) => {
     }
 });
 
-// **ROTA DE MÉTRICAS CORRIGIDA E OTIMIZADA**
 app.get('/api/metrics', async (req: Request, res: Response) => {
     try {
-        // Busca todos os dados de uma vez para evitar múltiplas chamadas
-        const { data, error } = await supabase
-            .from('candidates')
-            .select('fit_score');
-
+        const { data, error } = await supabase.from('candidates').select('fit_score');
         if (error) throw error;
 
         const totalCandidates = data.length;
@@ -126,7 +122,6 @@ app.get('/api/metrics', async (req: Request, res: Response) => {
             : 0;
 
         res.status(200).json({ totalCandidates, averageFitScore });
-
     } catch (error: any) {
         res.status(500).json({ message: "Error fetching metrics", error: error.message });
     }

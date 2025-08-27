@@ -1,4 +1,3 @@
-// Salve este código como `frontend/src/app/providers.tsx`
 
 "use client";
 

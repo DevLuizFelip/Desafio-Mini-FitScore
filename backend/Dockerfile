@@ -1,6 +1,4 @@
 # Dockerfile para o Backend (Node.js + Express + TypeScript)
-# Salve este arquivo como `backend/Dockerfile`
-
 # --- Estágio 1: Build ---
 # Usamos uma imagem Node.js completa para instalar dependências e compilar o TypeScript.
 FROM node:18 AS builder
