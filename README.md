@@ -3,9 +3,9 @@ Este repositório contém a solução completa para o desafio técnico "Mini Fit
 
 Links da Aplicação:
 
-Frontend (Vercel): [URL_DO_SEU_FRONTEND_AQUI]
+Frontend (Vercel): https://desafio-mini-fit-score.vercel.app
 
-Backend (Render): [URL_DO_SEU_BACKEND_AQUI]/api/health
+Backend (Render): https://desafio-mini-fitscore.onrender.com/api/health
 
 🚀 Visão Geral
 O Mini FitScore é um MVP (Minimum Viable Product) que permite a um avaliador:
