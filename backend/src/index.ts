@@ -1,3 +1,4 @@
+// Salve este código como `backend/src/index.ts`
 
 import express, { Request, Response } from 'express';
 import cors from 'cors';
