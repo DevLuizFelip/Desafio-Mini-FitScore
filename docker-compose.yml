@@ -1,0 +1,38 @@
+# Salve este arquivo como `docker-compose.yml` na raiz do projeto.
+
+version: '3.8'
+
+services:
+  # --- Serviço do Backend ---
+  backend:
+    build:
+      context: ./backend  # Caminho para a pasta do backend
+      dockerfile: Dockerfile
+    container_name: fitscore-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"  # Mapeia a porta 3001 do host para a 3001 do container
+    env_file:
+      - ./backend/.env # Carrega as variáveis de ambiente do arquivo .env do backend
+    networks:
+      - fitscore-net
+
+  # --- Serviço do Frontend ---
+  frontend:
+    build:
+      context: ./frontend # Caminho para a pasta do frontend
+      dockerfile: Dockerfile
+    container_name: fitscore-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000" # Mapeia a porta 3000 do host para a 3000 do container
+    depends_on:
+      - backend # Garante que o backend suba antes do frontend
+    networks:
+      - fitscore-net
+
+# --- Rede ---
+# Define uma rede customizada para que os containers possam se comunicar
+networks:
+  fitscore-net:
+    driver: bridge
